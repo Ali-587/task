@@ -8,10 +8,11 @@ phases:
   pre_build:
     commands:
       - echo "Logging in to Amazon ECR..."
-      - aws --version
-      - COMMIT_SHA=${CODEBUILD_RESOLVED_SOURCE_VERSION}
-      - IMAGE_TAG=${COMMIT_SHA:0:7}
-      - echo "Commit: $COMMIT_SHA  Tag: $IMAGE_TAG"
+      - echo "AWS region: $AWS_DEFAULT_REGION"
+      - COMMIT_SHA=$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - IMAGE_TAG=$(echo "$COMMIT_SHA" | cut -c 1-7)
+      - echo "Commit: $COMMIT_SHA"
+      - echo "Image tag: $IMAGE_TAG"
       - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$ECR_REPO_URI"
   build:
     commands:
@@ -21,7 +22,7 @@ phases:
     commands:
       - echo "Pushing Docker image..."
       - docker push "$ECR_REPO_URI:$IMAGE_TAG"
-      - echo "Generating imagedefinitions.json..."
+      - echo "Writing imagedefinitions.json..."
       - printf '[{"name":"%s","imageUri":"%s"}]' "$CONTAINER_NAME" "$ECR_REPO_URI:$IMAGE_TAG" > imagedefinitions.json
       - cat imagedefinitions.json
 
