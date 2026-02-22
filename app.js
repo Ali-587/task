@@ -1,7 +1,7 @@
-const express = require("express");
-const app = express();
+const http = require("http");
+const port = process.env.PORT || 3000;
 
-app.get("/", (req, res) => res.send("Hello from ECS via CI/CD"));
-app.get("/health", (req, res) => res.status(200).send("OK"));
-
-app.listen(3000, "0.0.0.0", () => console.log("Listening on 3000"));
+http.createServer((req, res) => {
+  res.writeHead(200, {"Content-Type": "application/json"});
+  res.end(JSON.stringify({message: "Hello from ECS via CI/CD"}));
+}).listen(port, () => console.log("Listening on", port));
