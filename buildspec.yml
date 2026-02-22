@@ -1,31 +1,21 @@
 version: 0.2
-
 env:
   variables:
-    AWS_DEFAULT_REGION: eu-central-1
-    ECR_REPO: ecs-cicd-demo
-    CONTAINER_NAME: app
+    CONTAINER_NAME: "app"
 
 phases:
   pre_build:
     commands:
-      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-      - REPO_URI=$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPO_URI
-      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - IMAGE_TAG=${COMMIT_HASH:=latest}
-
+      - COMMIT_SHA=${CODEBUILD_RESOLVED_SOURCE_VERSION}
+      - IMAGE_TAG=${COMMIT_SHA:0:7}
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$ECR_REPO_URI"
   build:
     commands:
-      - docker build -t $REPO_URI:$IMAGE_TAG .
-      - docker tag $REPO_URI:$IMAGE_TAG $REPO_URI:latest
-
+      - docker build -t "$ECR_REPO_URI:$IMAGE_TAG" .
   post_build:
     commands:
-      - docker push $REPO_URI:$IMAGE_TAG
-      - docker push $REPO_URI:latest
-      - printf '[{"name":"%s","imageUri":"%s"}]' "$CONTAINER_NAME" "$REPO_URI:$IMAGE_TAG" > imagedefinitions.json
-
+      - docker push "$ECR_REPO_URI:$IMAGE_TAG"
+      - printf '[{"name":"%s","imageUri":"%s"}]' "$CONTAINER_NAME" "$ECR_REPO_URI:$IMAGE_TAG" > imagedefinitions.json
 artifacts:
   files:
     - imagedefinitions.json
